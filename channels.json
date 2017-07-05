@@ -1,0 +1,6 @@
+[	
+	{"name":"<Channel name>",
+		"id":"<YouTube channel id>",
+		"user":"<Wordpress user name>",
+		"password":"<Wordpress user password>"}, 
+]
