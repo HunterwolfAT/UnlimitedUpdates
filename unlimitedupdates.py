@@ -1,6 +1,5 @@
 # This collection of scripts periodically pulls videos from channels specified in channels.json,
 # compares them to already known videos and adds new videos as wordpress posts to the blog 
-# specified in wordpress_credentials.json
 #
 # Written by Lena Siess, 2017
 
@@ -22,19 +21,11 @@ if os.path.isfile("channels.json") == False:
 channels_file = open("channels.json").read()
 channels = json.loads(channels_file)
 first_run = False
-add_existing_videos = False
 
 knownvideos = []
 set(knownvideos)
 
-if os.path.isfile("knownvideos.json") == False:
-    print "No knownvideos.json file found. First Time Run!"
-    first_run = True
-    if raw_input("Do you want already existing videos to be added to the website? (Will be a LOT!) [y/N] ") == 'y':
-        if raw_input("Are you really sure? Type 'yes' if you are: ") == "yes":
-            print ("Okay! Hope you didn't make a mistake!")
-            add_existing_videos = True
-else:
+if os.path.isfile("knownvideos.json") == True:
     knownvideos_file_read = open("knownvideos.json").read()
     knownvideos = json.loads(knownvideos_file_read)
 
@@ -42,6 +33,7 @@ else:
 args = argparser.parse_args()
 service = getyoutubevideos.get_authenticated_service(args)
 
+# Put "get videos, compare, and post" into its own function
 
 def cycle(init=False):
     # Fetch videos of unknown channels and register the channels in knownvideos.json
@@ -60,7 +52,7 @@ def cycle(init=False):
                 # Check for differences with known videos
                 for playlist_item in videosresponse["items"]:
                     # returns 1 if videos exists, 0 if it doesnt:
-                    if known_channel.count(playlist_item["snippet"]["resourceId"]["videoId"]) == 1:
+                    if known_channel.count(playlist_item["snippet"]["resourceId"]["videoId"]) == 0:
                         # video is not known to us yet
 
                         # make a post about it
@@ -86,9 +78,12 @@ def cycle(init=False):
                         added_videos += 1
 
         if channel_is_known == False:
-            if init:
-                # TODO expand this choice
-                print "Unkown Channel found. Do you want to add all exisiting videos to the website? (TODO)"
+
+            add_existing_videos = False
+            if init == True:
+                if raw_input("Unkown Channel found. Do you want to add all exisiting videos to the website? [Y/n]") != 'n':
+                    if raw_input("Are you absolutely sure? Type 'yes' if you are: ") == "yes":
+                        add_existing_videos = True
 
             new_channel = []
             set(new_channel)
@@ -99,6 +94,23 @@ def cycle(init=False):
                 #description = playlist_item["snippet"]["description"]
 
                 new_channel.append(video_id)
+
+                if add_existing_videos == True:
+                    # Login with the user who'se channel it is the video belongs to
+                    wp = wordpress.login(channel['user'],channel['password'])
+
+                    # Embed the video into the post
+                    post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
+
+                    # Post it
+                    wordpress.post(wp, playlist_item["snippet"]["title"],
+                                        post_content,
+                                        {
+                                            'post_tag': [str(channel['name'])], 
+                                            'category': ['videos']
+                                        })
+
+                    added_videos += 1
 
             knownvideos.append(new_channel)
             print ">>> Added " + str(channel['name']) + " as new channel to known channels!"
@@ -115,7 +127,7 @@ def cycle(init=False):
 
 
 
-
+# Here the actual main loop
 print "Iniital run:"
 cycle(True)
 
