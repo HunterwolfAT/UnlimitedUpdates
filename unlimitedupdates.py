@@ -8,6 +8,8 @@ from oauth2client.tools import argparser
 import os
 import time
 import json
+import datetime
+import parser
 import getyoutubevideos
 import wordpress
 
@@ -64,13 +66,9 @@ def cycle(init=False):
                         # Embed the video into the post
                         post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
 
+
                         # Post it
-                        wordpress.post(wp, playlist_item["snippet"]["title"],
-                                            post_content,
-                                            {
-                                                'post_tag': [str(channel['name'])], 
-                                                'category': ['videos']
-                                            })
+                        wordpress.post(wp, playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"] ,{'post_tag': [str(channel['name'])],'category': ['videos']})
 
                         # add it to the known videos
                         known_channel.append(playlist_item["snippet"]["resourceId"]["videoId"])
@@ -103,12 +101,7 @@ def cycle(init=False):
                     post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
 
                     # Post it
-                    wordpress.post(wp, playlist_item["snippet"]["title"],
-                                        post_content,
-                                        {
-                                            'post_tag': [str(channel['name'])], 
-                                            'category': ['videos']
-                                        })
+                    wordpress.post(wp, playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"] , {'post_tag': [str(channel['name'])],'category': ['videos']})
 
                     added_videos += 1
 
@@ -130,6 +123,7 @@ def cycle(init=False):
 # Here the actual main loop
 print "Iniital run:"
 cycle(True)
+
 
 while True:
     print "Done! Now waiting " + str(WAIT_TIME) + " seconds!"
