@@ -1,4 +1,4 @@
-# This collection of scripts periodically pulls videos from channels specified in channels.json,
+
 # compares them to already known videos and adds new videos as wordpress posts to the blog 
 #
 # Written by Lena Siess, 2017
@@ -38,6 +38,8 @@ service = getyoutubevideos.get_authenticated_service(args)
 # Put "get videos, compare, and post" into its own function
 
 def cycle(init=False):
+    site_libraries = []
+
     # Fetch videos of unknown channels and register the channels in knownvideos.json
     for channel in channels:
         added_videos = 0
@@ -63,12 +65,15 @@ def cycle(init=False):
                         # Login with the user who'se channel it is the video belongs to
                         wp = wordpress.login(channel['user'],channel['password'])
 
+                        if site_libraries == []:
+                            site_libraries = wordpess.updatebraries(wp)
+
                         # Embed the video into the post
                         post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
 
 
                         # Post it
-                        wordpress.post(wp, playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"] ,{'post_tag': [str(channel['name'])],'category': ['videos']})
+                        wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"], {'post_tag': [str(channel['name'])],'category': ['videos']})
 
                         # add it to the known videos
                         known_channel.append(playlist_item["snippet"]["resourceId"]["videoId"])
@@ -97,11 +102,14 @@ def cycle(init=False):
                     # Login with the user who'se channel it is the video belongs to
                     wp = wordpress.login(channel['user'],channel['password'])
 
+                    if site_libraries == []:
+                        site_libraries = wordpress.updateLibraries(wp)
+
                     # Embed the video into the post
                     post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
 
                     # Post it
-                    wordpress.post(wp, playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"] , {'post_tag': [str(channel['name'])],'category': ['videos']})
+                    wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"] ,{'post_tag': [str(channel['name'])],'category': ['videos']})
 
                     added_videos += 1
 
