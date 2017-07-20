@@ -66,7 +66,7 @@ def cycle(init=False):
                         wp = wordpress.login(channel['user'],channel['password'])
 
                         if site_libraries == []:
-                            site_libraries = wordpess.updatebraries(wp)
+                            site_libraries = wordpress.updateLibraries(wp)
 
                         # Embed the video into the post
                         post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
