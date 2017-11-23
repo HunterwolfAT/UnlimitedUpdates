@@ -35,7 +35,7 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
 
     # Check if the thumbnail already exists in the media library
     thumbnail_exists = False
-    print media
+
     for entry in media_library:
         if entry.title == 'thumbnail_' + video_id + '.jpg':
             print "Thumbnail already exists!"
@@ -60,7 +60,6 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
     # Set the thumbnail as the featured image of the post
     post.thumbnail = thumbnail_id
 
-    # TODO: uncomment to actually make things visible
     post.post_status = 'publish'
     client.call(NewPost(post))
 

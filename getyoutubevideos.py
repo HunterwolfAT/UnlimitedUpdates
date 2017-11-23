@@ -62,7 +62,7 @@ def catchChannelVideos(service, channelID):
         # Retrieve the list of videos uploaded to the given user's channel.
         playlistitems_list_request = service.playlistItems().list(
             playlistId=uploads_list_id,
-            part="snippet",
+            part="snippet,status",
             maxResults=50
         )
         

@@ -13,7 +13,7 @@ import parser
 import getyoutubevideos
 import wordpress
 
-WAIT_TIME = 10
+WAIT_TIME = 600
 
 # Initialize
 if os.path.isfile("channels.json") == False:
@@ -43,24 +43,24 @@ def cycle(init=False):
     # Fetch videos of unknown channels and register the channels in knownvideos.json
     for channel in channels:
         added_videos = 0
-        print "Fetching Videos in list of Channel %s" % channel['name']
+        #print "Fetching Videos in list of Channel %s" % channel['name']
         videosresponse = getyoutubevideos.catchChannelVideos(service, str(channel['id']))
 
         channel_is_known = False
         for known_channel in knownvideos:
             #print "%s compared with %s", (str(known_channel[0]), str(channel['id']))
             if str(known_channel[0]) == str(channel['id']):
-                print "Channel already registered!"
+                #print "Channel already registered!"
                 channel_is_known = True
                 
                 # Check for differences with known videos
                 for playlist_item in videosresponse["items"]:
-                    # returns 1 if videos exists, 0 if it doesnt:
-                    if known_channel.count(playlist_item["snippet"]["resourceId"]["videoId"]) == 0:
+                    # check if video is public and wether we already know it: returns 1 if videos exists, 0 if it doesnt:
+                    if playlist_item["status"]["privacyStatus"] == "public" and known_channel.count(playlist_item["snippet"]["resourceId"]["videoId"]) == 0:
                         # video is not known to us yet
 
                         # make a post about it
-                        print "New Video! " + playlist_item["snippet"]["title"]
+                        print ">>" + str(channel['name']) + ": New Video - " + playlist_item["snippet"]["title"]
 
                         # Login with the user who'se channel it is the video belongs to
                         wp = wordpress.login(channel['user'],channel['password'])
@@ -69,7 +69,8 @@ def cycle(init=False):
                             site_libraries = wordpress.updateLibraries(wp)
 
                         # Embed the video into the post
-                        post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
+                        #post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
+                        post_content = playlist_item["snippet"]["description"]
 
 
                         # Post it
@@ -84,9 +85,8 @@ def cycle(init=False):
 
             add_existing_videos = False
             if init == True:
-                if raw_input("Unkown Channel found. Do you want to add all exisiting videos to the website? [Y/n]") != 'n':
-                    if raw_input("Are you absolutely sure? Type 'yes' if you are: ") == "yes":
-                        add_existing_videos = True
+                if raw_input("Unkown Channel. Add all exisiting videos to the website? [y/N]") == 'y':
+                    add_existing_videos = True
 
             new_channel = []
             set(new_channel)
@@ -106,7 +106,8 @@ def cycle(init=False):
                         site_libraries = wordpress.updateLibraries(wp)
 
                     # Embed the video into the post
-                    post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
+                    #post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
+                    post_content = playlist_item["snippet"]["description"]
 
                     # Post it
                     wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"] ,{'post_tag': [str(channel['name'])],'category': ['videos']})
@@ -116,7 +117,8 @@ def cycle(init=False):
             knownvideos.append(new_channel)
             print ">>> Added " + str(channel['name']) + " as new channel to known channels!"
 
-        print ">>> Added " + str(added_videos) + " new videos to the website!"
+        if added_videos > 0:
+            print ">>> Added " + str(added_videos) + " new videos of " + str(channel['name']) + " to the website!"
 
     #print knownvideos
 
