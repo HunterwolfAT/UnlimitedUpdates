@@ -23,6 +23,7 @@ if os.path.isfile("channels.json") == False:
 channels_file = open("channels.json").read()
 channels = json.loads(channels_file)
 first_run = False
+added_videos = 0
 
 knownvideos = []
 set(knownvideos)
@@ -37,8 +38,42 @@ service = getyoutubevideos.get_authenticated_service(args)
 
 # Put "get videos, compare, and post" into its own function
 
-def cycle(init=False):
+def handle_video(channel, videoresponse, known_channel):
     site_libraries = []
+    global added_videos
+    # Check for differences with known videos
+    for playlist_item in videoresponse["items"]:
+        # check if video is public and wether we already know it: returns 1 if videos exists, 0 if it doesnt:
+        if playlist_item["status"]["privacyStatus"] == "public" and known_channel.count(playlist_item["snippet"]["resourceId"]["videoId"]) == 0:
+            # video is not known to us yet
+
+            # make a post about it
+            print ">>" + str(channel['name']) + ": New Video - " + playlist_item["snippet"]["title"]
+            # Login with the user who'se channel it is the video belongs to
+            wp = wordpress.login(channel['user'],channel['password'])
+
+            if site_libraries == []:
+                site_libraries = wordpress.updateLibraries(wp)
+
+            # Embed the video into the post
+            post_content = playlist_item["snippet"]["description"]
+            # Search the tags of the video to categorize it
+            tags = getyoutubevideos.catchVideoTags(service, playlist_item["snippet"]["resourceId"]["videoId"])
+            
+            
+            # Post it
+            wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"], {'post_tag': [str(channel['name'])],'category': ['videos']})
+
+            # add it to the known videos
+            known_channel.append(playlist_item["snippet"]["resourceId"]["videoId"])
+
+            added_videos += 1
+
+    return known_channel
+
+
+def cycle(init=False):
+    global added_videos
 
     # Fetch videos of unknown channels and register the channels in knownvideos.json
     for channel in channels:
@@ -52,34 +87,7 @@ def cycle(init=False):
             if str(known_channel[0]) == str(channel['id']):
                 #print "Channel already registered!"
                 channel_is_known = True
-                
-                # Check for differences with known videos
-                for playlist_item in videosresponse["items"]:
-                    # check if video is public and wether we already know it: returns 1 if videos exists, 0 if it doesnt:
-                    if playlist_item["status"]["privacyStatus"] == "public" and known_channel.count(playlist_item["snippet"]["resourceId"]["videoId"]) == 0:
-                        # video is not known to us yet
-
-                        # make a post about it
-                        print ">>" + str(channel['name']) + ": New Video - " + playlist_item["snippet"]["title"]
-
-                        # Login with the user who'se channel it is the video belongs to
-                        wp = wordpress.login(channel['user'],channel['password'])
-
-                        if site_libraries == []:
-                            site_libraries = wordpress.updateLibraries(wp)
-
-                        # Embed the video into the post
-                        #post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
-                        post_content = playlist_item["snippet"]["description"]
-
-
-                        # Post it
-                        wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"], {'post_tag': [str(channel['name'])],'category': ['videos']})
-
-                        # add it to the known videos
-                        known_channel.append(playlist_item["snippet"]["resourceId"]["videoId"])
-
-                        added_videos += 1
+                known_channel = handle_video(channel, videosresponse, known_channel)
 
         if channel_is_known == False:
 
@@ -91,28 +99,7 @@ def cycle(init=False):
             new_channel = []
             set(new_channel)
             new_channel.append(str(channel['id'])) # Add channel ID first, so we know what channel the videos belong to
-            for playlist_item in videosresponse["items"]:
-                #title = playlist_item["snippet"]["title"]
-                video_id = playlist_item["snippet"]["resourceId"]["videoId"]
-                #description = playlist_item["snippet"]["description"]
-
-                new_channel.append(video_id)
-
-                if add_existing_videos == True:
-                    # Login with the user who'se channel it is the video belongs to
-                    wp = wordpress.login(channel['user'],channel['password'])
-
-                    if site_libraries == []:
-                        site_libraries = wordpress.updateLibraries(wp)
-
-                    # Embed the video into the post
-                    #post_content = "[embed]https://www.youtube.com/watch?v=" + playlist_item["snippet"]["resourceId"]["videoId"] + "[/embed]\n" + playlist_item["snippet"]["description"]
-                    post_content = playlist_item["snippet"]["description"]
-
-                    # Post it
-                    wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"] ,{'post_tag': [str(channel['name'])],'category': ['videos']})
-
-                    added_videos += 1
+            new_channel = handle_video(channel, videosresponse, new_channel)
 
             knownvideos.append(new_channel)
             print ">>> Added " + str(channel['name']) + " as new channel to known channels!"

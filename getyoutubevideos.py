@@ -83,3 +83,7 @@ def catchChannelVideos(service, channelID):
             print # Basically a new line
 
 #catchChannelVideos("UCAmaelj22ggPbyck0X93FlA")
+
+def catchVideoTags(service, videoID):
+    video_response = service.videos().list(part="snippet",id=videoID).execute()
+    return video_response["items"][0]["snippet"]["tags"]
