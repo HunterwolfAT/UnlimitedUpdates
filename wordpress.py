@@ -33,6 +33,11 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
     post.terms_names = terms 
     post.date = datetime.strptime(date_posted, '%Y-%m-%dT%H:%M:%S.%fZ')
 
+    # Set the video url as a custom field
+    url = "https://www.youtube.com/watch?=" + video_id
+    post.custom_fields = []
+    post.custom_fields.append({'key' : 'youtubeurl', 'value' : url})
+
     # Check if the thumbnail already exists in the media library
     thumbnail_exists = False
 
@@ -47,7 +52,14 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
     if not thumbnail_exists:
         # Download the YouTube thumbnail and place it with the the other wordpress media
         print "Download Thumbnail..."
-        image = urllib2.urlopen("https://img.youtube.com/vi/" + video_id + "/sddefault.jpg").read()
+        try:
+            image = urllib2.urlopen("https://img.youtube.com/vi/" + video_id + "/sddefault.jpg").read()
+        except urllib2.HTTPError:
+            try:
+                image = urllib2.urlopen("https://img.youtube.com/vi/" + video_id + "/hqdefault.jpg").read()
+            except urllib2.HTTPError:
+                image = urllib2.urlopen("https://img.youtube.com/vi/" + video_id + "/maxresdefault.jpg").read()
+
         data = {
                 'name': 'thumbnail_' + video_id + '.jpg',
                 'type': 'image/jpeg',

@@ -36,7 +36,9 @@ if os.path.isfile("knownvideos.json") == True:
 args = argparser.parse_args()
 service = getyoutubevideos.get_authenticated_service(args)
 
-# Put "get videos, compare, and post" into its own function
+# TODO maybe have a better way to check if post already exists to avoid double posting
+# So, the way its done now, is to grab the 10 newest posts, and check aginst those
+# To check against ALL posts, wed have to iterate on the pages
 
 def handle_video(channel, videoresponse, known_channel):
     site_libraries = []
@@ -48,7 +50,6 @@ def handle_video(channel, videoresponse, known_channel):
             # video is not known to us yet
 
             # make a post about it
-            print ">>" + str(channel['name']) + ": New Video - " + playlist_item["snippet"]["title"]
             # Login with the user who'se channel it is the video belongs to
             wp = wordpress.login(channel['user'],channel['password'])
 
@@ -57,12 +58,32 @@ def handle_video(channel, videoresponse, known_channel):
 
             # Embed the video into the post
             post_content = playlist_item["snippet"]["description"]
+
             # Search the tags of the video to categorize it
             tags = getyoutubevideos.catchVideoTags(service, playlist_item["snippet"]["resourceId"]["videoId"])
             
+            category = []
+            for tag in tags:
+                tag = tag.lower()
+                if tag == "uagames" or tag == "games" or tag == "gaming" or tag == "videospiele" or tag == "video games":
+                    category.append('Videospiele')
+                if tag == "uaanime" or tag == "anime":
+                    category.append('Anime')
+                if tag == "uamanga" or tag == "manga":
+                    category.append('Manga')
+                if tag == "uafilm" or tag == "movies" or tag == "film":
+                    category.append('Filme')
+                if tag == "uaserie" or tag == "serie" or tag == "tv":
+                    category.append('Serien')
+            if category == []: category.append('Sonstiges')
+
+            tags = [str(channel['name'])]
+            tags.extend(category)
+            category.append('Videos')
             
+            print str(tags) + "|" + str(category) + " >> " + str(channel['name']) + ": New Video - " + playlist_item["snippet"]["title"]
             # Post it
-            wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"], {'post_tag': [str(channel['name'])],'category': ['videos']})
+            wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"], {'post_tag': tags ,'category': category})
 
             # add it to the known videos
             known_channel.append(playlist_item["snippet"]["resourceId"]["videoId"])
@@ -93,13 +114,14 @@ def cycle(init=False):
 
             add_existing_videos = False
             if init == True:
-                if raw_input("Unkown Channel. Add all exisiting videos to the website? [y/N]") == 'y':
+                if raw_input("Unkown Channel \"" + channel['name']  + "\". Add all exisiting videos to the website? [y/N]") == 'y':
                     add_existing_videos = True
 
             new_channel = []
             set(new_channel)
             new_channel.append(str(channel['id'])) # Add channel ID first, so we know what channel the videos belong to
-            new_channel = handle_video(channel, videosresponse, new_channel)
+            if add_existing_videos:
+                new_channel = handle_video(channel, videosresponse, new_channel)
 
             knownvideos.append(new_channel)
             print ">>> Added " + str(channel['name']) + " as new channel to known channels!"
