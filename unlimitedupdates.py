@@ -1,4 +1,4 @@
-
+# This script crawls given youtube channels for its 40 most recent videos,
 # compares them to already known videos and adds new videos as wordpress posts to the blog 
 #
 # Written by Lena Siess, 2017
@@ -14,13 +14,22 @@ import getyoutubevideos
 import wordpress
 
 WAIT_TIME = 600
+CHANNELS_FILENAME = "channels.json"
+LOG_FILENAME = "UAlogfile.txt"
+KNOWNVIDEOS_FILENAME = "knownvideos.json"
 
 # Initialize
-if os.path.isfile("channels.json") == False:
+if os.path.isfile(CHANNELS_FILENAME) == False:
     print "No channels.json file found!"
     quit()
 
-channels_file = open("channels.json").read()
+if os.path.isfile(LOG_FILENAME) == False:
+    print "No logfile found! Creating it now at UAlogfile.txt"
+    log_file = open(LOG_FILENAME, "a")
+    log_file.write("Unlimited Ammo YouTube Script Server Log - Started " + str(datetime.datetime.now()) + "\n")
+    log_file.close()
+
+channels_file = open(CHANNELS_FILENAME).read()
 channels = json.loads(channels_file)
 first_run = False
 added_videos = 0
@@ -28,8 +37,8 @@ added_videos = 0
 knownvideos = []
 set(knownvideos)
 
-if os.path.isfile("knownvideos.json") == True:
-    knownvideos_file_read = open("knownvideos.json").read()
+if os.path.isfile(KNOWNVIDEOS_FILENAME) == True:
+    knownvideos_file_read = open(KNOWNVIDEOS_FILENAME).read()
     knownvideos = json.loads(knownvideos_file_read)
 
 # Register with the Youtube Data API
@@ -81,7 +90,7 @@ def handle_video(channel, videoresponse, known_channel):
             tags.extend(category)
             category.append('Videos')
             
-            print str(tags) + "|" + str(category) + " >> " + str(channel['name']) + ": New Video - " + playlist_item["snippet"]["title"]
+            #print str(tags) + "|" + str(category) + " >> " + str(channel['name']) + ": New Video - " + playlist_item["snippet"]["title"]
             # Post it
             wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"], {'post_tag': tags ,'category': category})
 
@@ -124,28 +133,38 @@ def cycle(init=False):
                 new_channel = handle_video(channel, videosresponse, new_channel)
 
             knownvideos.append(new_channel)
-            print ">>> Added " + str(channel['name']) + " as new channel to known channels!"
+            log_message(">>> Added " + channel['name'] + " as new channel to known channels!")
 
         if added_videos > 0:
-            print ">>> Added " + str(added_videos) + " new videos of " + str(channel['name']) + " to the website!"
+            log_message(">>> Added " + str(added_videos) + " new videos of " + str(channel['name']) + " to the website!")
 
     #print knownvideos
 
     # Save knownvideos in knownvideos.json
-    knownvideos_file_write = open("knownvideos.json", 'w')
+    knownvideos_file_write = open(KNOWNVIDEOS_FILENAME, 'w')
     json.dump(knownvideos, knownvideos_file_write)
     knownvideos_file_write.close()
 
-
+def log_message(msg):
+    msg = str(datetime.datetime.now()) + ": " + msg
+    log_file = open(LOG_FILENAME, "a")
+    log_file.write(msg + "\n")
+    log_file.close()
+    print msg
 
 
 # Here the actual main loop
-print "Iniital run:"
+log_message("Server started! Initial run...")
 cycle(True)
 
 
 while True:
-    print "Done! Now waiting " + str(WAIT_TIME) + " seconds!"
-    time.sleep(WAIT_TIME)
-    cycle()
+    try:
+    	print "Done! Now waiting " + str(WAIT_TIME) + " seconds!"
+    	time.sleep(WAIT_TIME)
+	cycle()
+    except:
+        log_message("HALTING SCRIPT: An Exception was thrown!")
+        print "Exiting..."
+        quit()
 
