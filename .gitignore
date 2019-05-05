@@ -5,3 +5,5 @@ known*
 *secret*
 ./UAlogfile.txt
 ./*.txt
+*.swp
+*.pyc

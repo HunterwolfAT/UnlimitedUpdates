@@ -64,6 +64,8 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
 
     print "Adding Video " + title.encode('utf-8', 'ignore') + "..."
     post = WordPressPost()
+    # print "==================== Post status right after creation ======================"
+    # pprint(post.__dict__)
     post.title = title
     post.content = content
     post.terms_names = terms 
@@ -104,6 +106,7 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
                 'type': 'image/jpeg',
         }
         data['bits'] = xmlrpc_client.Binary(image)
+	pprint(data)
 
         return_data = client.call(media.UploadFile(data))
 	if not return_data == '':
@@ -116,9 +119,12 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
     # Only publish post if it successfully got an image
     post.post_status = 'publish'
     print "Post object just before sending it to wordpress."
-    pprint(post)
+    pprint(post.__dict__)
     wpResult = client.call(NewPost(post))
-    print "Wordpress Response:"
-    print(wpResult)
 
-    print "Upload successfull!"
+    if not wpResult == '':
+    	print "Upload successfull!"
+	return True
+    else:
+	print "ERROR: Upload Fehlgeschlagen!"
+	return False

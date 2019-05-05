@@ -85,6 +85,7 @@ def handle_video(channel, videoresponse, known_channel):
                 if tag == "uaserie" or tag == "serie" or tag == "tv":
                     category.append('Serien')
             if category == []: category.append('Sonstiges')
+            category = list(set(category)) # filter out duplicates
 
             tags = [str(channel['name'])]
             tags.extend(category)
@@ -92,17 +93,16 @@ def handle_video(channel, videoresponse, known_channel):
             
             #print str(tags) + "|" + str(category) + " >> " + str(channel['name']) + ": New Video - " + playlist_item["snippet"]["title"]
             # Post it
-            wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"], {'post_tag': tags ,'category': category})
+            success = wordpress.post(wp, site_libraries[0], site_libraries[1], playlist_item["snippet"]["title"], post_content, playlist_item["snippet"]["publishedAt"], playlist_item["snippet"]["resourceId"]["videoId"], {'post_tag': tags ,'category': category})
 
             # add it to the known videos
-            known_channel.append(playlist_item["snippet"]["resourceId"]["videoId"])
-
-            added_videos += 1
+            if success:
+                known_channel.append(playlist_item["snippet"]["resourceId"]["videoId"])
+                added_videos += 1
 
             site_libraries = wordpress.updateLibraries(wp)
 
     return known_channel
-
 
 def cycle(init=False):
     global added_videos
