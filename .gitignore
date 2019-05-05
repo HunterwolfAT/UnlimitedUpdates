@@ -1,9 +1,9 @@
 channels.json
 *.json
-known*
 *oauth*
 *secret*
 ./UAlogfile.txt
 ./*.txt
 *.swp
 *.pyc
+known*

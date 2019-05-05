@@ -19,53 +19,17 @@ def updateLibraries(client):
     all_libs = [ media_lib, posts_lib ]
     return all_libs
 
-def printPost(post):
-    if hasattr(post, 'title'):
-    	print("==========================Title========================")
-	print(post.title)
-    else:
-	print("NO TITLE!")
-    if hasattr(post, 'content'):
-    	print("=======================Content==========================")
-	print(post.content)
-    else:
-	print("NO CONTENT!")
-    if hasattr(post, 'terms_names'):
-	print "========================Terms==========================="
-	for term in post.terms_names:
-	    print(term)
-    else:
-	print("NO TERMS!")
-    if hasattr(post, 'date'):
-    	print("=========================Date=========================")
-	print(post.date)
-    else:
-	print("NO DATE!")
-    if hasattr(post, 'custom_fields'):
-	print("=====================Custom Fields====================")
-	for field in post.custom_fields:
-	    print(field)
-    else:
-	print("NO CUSTOM FIELDS!")
-    if hasattr(post, 'thumbnail'):
-    	print("=====================Thumbnail=========================")
-	print(post.thumbnail)
-    else:
-	print("NO THUMBNAIL!")
-
-
 def post(client, media_library, posts, title, content, date_posted, video_id, terms):
-
     # Check if the post already exists
     for post in posts:
         if post.title == title:
+	    print(post.title)
             print 'Post already exists!'
-            return # We are done here
+            return True# We are done here
 
-    print "Adding Video " + title.encode('utf-8', 'ignore') + "..."
+    print "Adding Video..."
+    print(title)
     post = WordPressPost()
-    # print "==================== Post status right after creation ======================"
-    # pprint(post.__dict__)
     post.title = title
     post.content = content
     post.terms_names = terms 
@@ -106,7 +70,6 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
                 'type': 'image/jpeg',
         }
         data['bits'] = xmlrpc_client.Binary(image)
-	pprint(data)
 
         return_data = client.call(media.UploadFile(data))
 	if not return_data == '':
