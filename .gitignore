@@ -3,5 +3,5 @@ channels.json
 known*
 *oauth*
 *secret*
-UAlogfile.txt
+./UAlogfile.txt
 ./*.txt

@@ -4,6 +4,7 @@ from wordpress_xmlrpc.methods.users import GetUserInfo
 from wordpress_xmlrpc.methods import media, posts
 from wordpress_xmlrpc.compat import xmlrpc_client 
 from datetime import datetime
+from pprint import pprint
 import urllib2
 
 def login(user, password):
@@ -17,6 +18,41 @@ def updateLibraries(client):
     posts_lib = client.call(GetPosts([]))
     all_libs = [ media_lib, posts_lib ]
     return all_libs
+
+def printPost(post):
+    if hasattr(post, 'title'):
+    	print("==========================Title========================")
+	print(post.title)
+    else:
+	print("NO TITLE!")
+    if hasattr(post, 'content'):
+    	print("=======================Content==========================")
+	print(post.content)
+    else:
+	print("NO CONTENT!")
+    if hasattr(post, 'terms_names'):
+	print "========================Terms==========================="
+	for term in post.terms_names:
+	    print(term)
+    else:
+	print("NO TERMS!")
+    if hasattr(post, 'date'):
+    	print("=========================Date=========================")
+	print(post.date)
+    else:
+	print("NO DATE!")
+    if hasattr(post, 'custom_fields'):
+	print("=====================Custom Fields====================")
+	for field in post.custom_fields:
+	    print(field)
+    else:
+	print("NO CUSTOM FIELDS!")
+    if hasattr(post, 'thumbnail'):
+    	print("=====================Thumbnail=========================")
+	print(post.thumbnail)
+    else:
+	print("NO THUMBNAIL!")
+
 
 def post(client, media_library, posts, title, content, date_posted, video_id, terms):
 
@@ -44,7 +80,7 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
     for entry in media_library:
         if entry.title == 'thumbnail_' + video_id + '.jpg':
             print("Thumbnail already exists!")
-            thumbnail_id = entry.id
+            post.thumbnail = entry.id
             thumbnail_exists = True
             break
         
@@ -73,12 +109,16 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
 	if not return_data == '':
         	thumbnail_id = return_data['id']
 		# Set the thumbnail as the featured image of the post
-    		post.thumbnail = thumbnail_id
+    		post.thumbnail = return_data['id']
 	else:
 		print "FEHLER: THUMBNAIL KONNTE NICHT IN WORDPRESS IMPORTIERT WERDEN"
 
     # Only publish post if it successfully got an image
     post.post_status = 'publish'
-    client.call(NewPost(post))
+    print "Post object just before sending it to wordpress."
+    pprint(post)
+    wpResult = client.call(NewPost(post))
+    print "Wordpress Response:"
+    print(wpResult)
 
     print "Upload successfull!"
