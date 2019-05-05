@@ -6,6 +6,7 @@
 
 from oauth2client.tools import argparser
 import os
+import sys, traceback
 import time
 import json
 import datetime
@@ -20,11 +21,11 @@ KNOWNVIDEOS_FILENAME = "knownvideos.json"
 
 # Initialize
 if os.path.isfile(CHANNELS_FILENAME) == False:
-    print "No channels.json file found!"
+    print ("No channels.json file found!")
     quit()
 
 if os.path.isfile(LOG_FILENAME) == False:
-    print "No logfile found! Creating it now at UAlogfile.txt"
+    print ("No logfile found! Creating it now at UAlogfile.txt")
     log_file = open(LOG_FILENAME, "a")
     log_file.write("Unlimited Ammo YouTube Script Server Log - Started " + str(datetime.datetime.now()) + "\n")
     log_file.close()
@@ -36,6 +37,8 @@ added_videos = 0
 
 knownvideos = []
 set(knownvideos)
+
+site_libraries = []
 
 if os.path.isfile(KNOWNVIDEOS_FILENAME) == True:
     knownvideos_file_read = open(KNOWNVIDEOS_FILENAME).read()
@@ -50,7 +53,7 @@ service = getyoutubevideos.get_authenticated_service(args)
 # To check against ALL posts, wed have to iterate on the pages
 
 def handle_video(channel, videoresponse, known_channel):
-    site_libraries = []
+    global site_libraries
     global added_videos
     # Check for differences with known videos
     for playlist_item in videoresponse["items"]:
@@ -61,9 +64,6 @@ def handle_video(channel, videoresponse, known_channel):
             # make a post about it
             # Login with the user who'se channel it is the video belongs to
             wp = wordpress.login(channel['user'],channel['password'])
-
-            if site_libraries == []:
-                site_libraries = wordpress.updateLibraries(wp)
 
             # Embed the video into the post
             post_content = playlist_item["snippet"]["description"]
@@ -99,6 +99,8 @@ def handle_video(channel, videoresponse, known_channel):
 
             added_videos += 1
 
+            site_libraries = wordpress.updateLibraries(wp)
+
     return known_channel
 
 
@@ -107,8 +109,11 @@ def cycle(init=False):
 
     # Fetch videos of unknown channels and register the channels in knownvideos.json
     for channel in channels:
+	if channel['active'] == False:
+		continue
+
         added_videos = 0
-        #print "Fetching Videos in list of Channel %s" % channel['name']
+        # print "Fetching Videos in list of Channel %s" % channel['name']
         videosresponse = getyoutubevideos.catchChannelVideos(service, str(channel['id']))
 
         channel_is_known = False
@@ -150,21 +155,27 @@ def log_message(msg):
     log_file = open(LOG_FILENAME, "a")
     log_file.write(msg + "\n")
     log_file.close()
-    print msg
+    print (msg)
 
 
 # Here the actual main loop
-log_message("Server started! Initial run...")
+#log_message("Server started! Initial run...")
+log_message("Script started!")
+wp = wordpress.login(channels[0]['user'],channels[0]['password'])
+site_libraries = wordpress.updateLibraries(wp)
 cycle(True)
+log_message("Script complete!")
 
 
-while True:
-    try:
-    	print "Done! Now waiting " + str(WAIT_TIME) + " seconds!"
-    	time.sleep(WAIT_TIME)
-	cycle()
-    except:
-        log_message("HALTING SCRIPT: An Exception was thrown!")
-        print "Exiting..."
-        quit()
+#while True:
+    #try:
+    	#print "Done! Now waiting " + str(WAIT_TIME) + " seconds!"
+    	#time.sleep(WAIT_TIME)
+	#cycle()
+    #except BaseException:
+        #log_message("HALTING SCRIPT: An Exception was thrown!")
+	#log_message(traceback.format_exc())
+		
+        #print "Exiting..."
+        #quit()
 

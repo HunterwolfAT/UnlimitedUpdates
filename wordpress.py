@@ -26,7 +26,7 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
             print 'Post already exists!'
             return # We are done here
 
-    print "Adding Video " + title + "..."
+    print "Adding Video " + title.encode('utf-8', 'ignore') + "..."
     post = WordPressPost()
     post.title = title
     post.content = content
@@ -43,7 +43,7 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
 
     for entry in media_library:
         if entry.title == 'thumbnail_' + video_id + '.jpg':
-            print "Thumbnail already exists!"
+            print("Thumbnail already exists!")
             thumbnail_id = entry.id
             thumbnail_exists = True
             break
@@ -58,7 +58,10 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
             try:
                 image = urllib2.urlopen("https://img.youtube.com/vi/" + video_id + "/hqdefault.jpg").read()
             except urllib2.HTTPError:
-                image = urllib2.urlopen("https://img.youtube.com/vi/" + video_id + "/maxresdefault.jpg").read()
+		try:
+			image = urllib2.urlopen("https://img.youtube.com/vi/" + video_id + "/maxresdefault.jpg").read()
+		except urllib2.HTTPError:
+			print "FEHLER: KONNTE YOUTUBE THUMBNAIL NICHT AUSFINDIG MACHEN"
 
         data = {
                 'name': 'thumbnail_' + video_id + '.jpg',
@@ -67,11 +70,14 @@ def post(client, media_library, posts, title, content, date_posted, video_id, te
         data['bits'] = xmlrpc_client.Binary(image)
 
         return_data = client.call(media.UploadFile(data))
-        thumbnail_id = return_data['id']
+	if not return_data == '':
+        	thumbnail_id = return_data['id']
+		# Set the thumbnail as the featured image of the post
+    		post.thumbnail = thumbnail_id
+	else:
+		print "FEHLER: THUMBNAIL KONNTE NICHT IN WORDPRESS IMPORTIERT WERDEN"
 
-    # Set the thumbnail as the featured image of the post
-    post.thumbnail = thumbnail_id
-
+    # Only publish post if it successfully got an image
     post.post_status = 'publish'
     client.call(NewPost(post))
 
